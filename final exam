@@ -1,0 +1,44 @@
+# 1
+ucla = read.csv('https://stats.idre.ucla.edu/stat/data/binary.csv')
+str(ucla)
+ucla$admit = factor(ucla$admit)
+
+#2
+#sample함수를 이용한 코드  
+n = nrow(ucla)
+i = 1:n
+train_list = sample(i, n*0.6)
+test_list = setdiff(i, train_list)
+ucla_train = ucla[train_list, ]
+ucla_test = ucla[test_list, ]
+
+
+#caret라이브러리를 이용한 코드
+library(caret)
+train_list = createDataPartition(y = ucla$admit, p = 0.6, list = F)
+ucla_train = ucla[train_list, ]
+ucla_test = ucla[-train_list, ]
+
+#3
+control = trainControl(method = 'cv', number = 10)
+r = train(admit~., data=ucla, method = 'rpart', metric='Accuracy', trControl = control)
+f50 = train(admit~., data=ucla, method = 'rf', ntree = 50, metric='Accuracy', trControl = control)
+f1000 = train(admit~., data=ucla, method = 'rf', ntree = 1000, metric='Accuracy', trControl = control)
+k = train(admit~., data=ucla, method = 'knn', metric='Accuracy', trControl = control)
+s_radial = train(admit~., data=ucla, method = 'svmRadial', metric='Accuracy', trControl = control)
+s_polynomial = train(admit~., data=ucla, method = 'svmPoly', metric='Accuracy', trControl = control)
+
+#4
+resamp = resamples(list(결정트리 = r, 랜덤포레50 = f50, 랜덤포레1000 = f1000, knn = k, SVMRadial = s_radial, 
+                        svmPolynomial= s_polynomial))
+sort(resamp, decreasing = T)
+dotplot(resamp)
+
+#5
+formula = admit~.
+model = ctree(formula, data = ucla_train)
+pred = predict(model, ucla_test)
+t = table(pred, ucla_test$admit)
+t
+
+confusionMatrix(pred, ucla_test$admit)
